@@ -3,13 +3,12 @@ import numpy as np
 np.set_printoptions(precision = 4, suppress = True)
 
 
+# P(z|s,a)
 def p_obs(z, s, a):
-    if (a in s and z == 'no') or (a not in s and z == 'yes'):
-        return 0.01
-    else:
-        return 0.99
+    return 0.05 if (a in s and z == 'no') or (a not in s and z == 'yes') else 0.95
 
 
+# P(s|b,a,z)
 def obs_likelihood(knowledge, belief, action, obs):
     likelihood = np.zeros(len(belief))
     for i, _object in enumerate(knowledge):
@@ -87,16 +86,17 @@ def plan(knowledge, belief):
 def main():
     knowledge = np.array([["yellow cup", "left"],
                           # ["yellow cup", "middle"],
-                          ["yellow cup", "right"],
-                          ["red cup", "left"],
-                          # ["red cup", "middle"],
+                          # ["yellow cup", "right"],
+                          # ["red cup", "left"],
+                          ["red cup", "middle"],
                           ["red cup", "right"],
                           # ["green cup", "left"],
                           # ["green cup", "middle"],
                           # ["green cup", "right"],
                           ["blue cup", "left"],
                           ["blue cup", "middle"],
-                          ["blue cup", "right"]])
+                          ["blue cup", "right"]
+                          ])
 
     size = len(knowledge)
 

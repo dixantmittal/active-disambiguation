@@ -3,54 +3,67 @@ import numpy as np
 np.set_printoptions(precision = 4, suppress = True)
 
 
+def entropy(p):
+    return -np.dot(p, np.log2(p))
+
+
 # P(z|s,a)
 def p_obs(z, s, a):
     return 0.05 if (a in s and z == 'no') or (a not in s and z == 'yes') else 0.95
 
 
-def entropy(p):
-    return -np.dot(p, np.log2(p))
-
-
-def entropy_diff(p1, p2):
-    return entropy(p1) - entropy(p2)
-
-
 # P(z|b,a)
 def obs_likelihood(knowledge, belief, action, obs):
     likelihood = np.zeros(len(belief))
-    for i, obj in enumerate(knowledge):
-        likelihood[i] = p_obs(obs, obj[0] + ' ' + obj[1], action) * belief[i]
+    for i, _object in enumerate(knowledge):
+        likelihood[i] = p_obs(obs, _object[0] + ' ' + _object[1], action) * belief[i]
+
     return likelihood
 
 
 # P(s|b,a,z)
 def belief_update(knowledge, belief, action, obs):
     updated_belief = obs_likelihood(knowledge, belief, action, obs)
-    return updated_belief / updated_belief.sum(keepdims = True)
+    return updated_belief / np.sum(updated_belief, keepdims = True)
+
+
+# H(X|U) = \sum_u P(u) \sum_x P(x\u) log P(x|u)
+def conditional_entropy(knowledge, belief, action, observations):
+    entropies = np.zeros(len(belief))
+
+    for o, _object in enumerate(knowledge):
+        probabilities = np.zeros(len(observations))
+        for j, observation in enumerate(observations):
+            probabilities[j] = p_obs(observation, _object[0] + ' ' + _object[1], action)
+        entropies[o] = entropy(probabilities)
+
+    return belief.dot(entropies)
 
 
 def plan(knowledge, belief, actions, observations):
     information_gain = np.zeros(len(actions))
     for i, action in enumerate(actions):
-        for obs in observations:
-            updated_belief = belief_update(knowledge, belief, action, obs)
-            information_gain[i] = information_gain[i] + entropy_diff(belief, updated_belief) * obs_likelihood(knowledge, belief, action, obs).sum()
+        obs_probability = np.zeros(len(observations))
+        for j, observation in enumerate(observations):
+            obs_probability[j] = obs_likelihood(knowledge, belief, action, observation).sum()
+
+        information_gain[i] = entropy(obs_probability) - conditional_entropy(knowledge, belief, action, observations)
+
     return actions[information_gain.argmax()]
 
 
 def main():
     knowledge = np.array([["yellow cup", "left"],
-                          ["yellow cup", "middle"],
-                          ["yellow cup", "right"],
+                          # ["yellow cup", "middle"],
+                          # ["yellow cup", "right"],
                           ["red cup", "left"],
                           ["red cup", "middle"],
-                          ["red cup", "right"],
-                          ["green cup", "left"],
+                          # ["red cup", "right"],
+                          # ["green cup", "left"],
                           ["green cup", "middle"],
                           ["green cup", "right"],
-                          ["blue cup", "left"],
-                          ["blue cup", "middle"],
+                          # ["blue cup", "left"],
+                          # ["blue cup", "middle"],
                           ["blue cup", "right"]
                           ])
 
