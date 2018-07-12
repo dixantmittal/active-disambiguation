@@ -5,7 +5,7 @@ np.set_printoptions(precision = 4, suppress = True)
 
 # P(z|s,a)
 def p_obs(z, s, a):
-    return 0.05 if (a in s and z == 'no') or (a not in s and z == 'yes') else 0.95
+    return 0.01 if (a in s and z == 'no') or (a not in s and z == 'yes') else 0.99
 
 
 # P(s|b,a,z)

@@ -1,6 +1,11 @@
 import numpy as np
+from environment import *
+from kafka import KafkaProducer, KafkaConsumer
 
 np.set_printoptions(precision = 4, suppress = True)
+
+consumer = KafkaConsumer('active-disambiguation-replies', group_id = 'alpha')
+producer = KafkaProducer(bootstrap_servers = 'localhost:9092')
 
 
 # P(z|s,a)
@@ -75,24 +80,6 @@ def init_distributions():
 
 
 if __name__ == '__main__':
-    KNOWLEDGE = np.array([["yellow cup", "left"],
-                          ["yellow cup", "middle"],
-                          ["yellow cup", "right"],
-                          ["red cup", "left"],
-                          ["red cup", "middle"],
-                          ["red cup", "right"],
-                          ["green cup", "left"],
-                          ["green cup", "middle"],
-                          ["green cup", "right"],
-                          ["blue cup", "left"],
-                          ["blue cup", "middle"],
-                          ["blue cup", "right"]
-                          ])
-
-    size = len(KNOWLEDGE)
-
-    BELIEF = np.ones(size)
-    BELIEF = BELIEF / BELIEF.sum(keepdims = True)
 
     semantic = set()
     spatial = set()
@@ -111,21 +98,33 @@ if __name__ == '__main__':
 
     DISTRIBUTIONS = init_distributions().reshape((n_objects, -1))
 
-    try:
-        while True:
-            actions = plan(3)
-            action = actions[0]
+    for _ in range(n_runs):
+        BELIEF = np.ones(n_objects)
+        BELIEF = BELIEF / BELIEF.sum(keepdims = True)
+        try:
+            while True:
+                actions = plan(3)
+                action = actions[0]
 
-            for action in actions:
-                print(BELIEF)
-                if BELIEF.max() > 0.7:
-                    print("Picks up: ", KNOWLEDGE[BELIEF.argmax()])
-                    raise KeyboardInterrupt
+                for action in actions:
+                    # print(BELIEF)
+                    if BELIEF.max() > 0.7:
+                        producer.send('active-disambiguation-questions',
+                                      ('Picks up ' + KNOWLEDGE[BELIEF.argmax()][0] + ' on ' + KNOWLEDGE[BELIEF.argmax()][1]).encode('utf-8'))
+                        producer.flush()
+                        print('Picks up ' + KNOWLEDGE[BELIEF.argmax()][0] + ' on ' + KNOWLEDGE[BELIEF.argmax()][1])
+                        raise KeyboardInterrupt
 
-                print(ACTIONS[action] + "?")
+                    producer.send('active-disambiguation-questions', ('Did you mean the ' + ACTIONS[action] + '?').encode('utf-8'))
+                    producer.flush()
 
-                actual_observation = input()
-                BELIEF = belief_update(KNOWLEDGE, BELIEF, ACTIONS[action], actual_observation)
+                    for reply in consumer:
+                        actual_observation = reply.value.decode('utf-8')
+                        break
 
-    except KeyboardInterrupt:
-        pass
+                    BELIEF = belief_update(BELIEF, ACTIONS[action], actual_observation)
+                    if actual_observation is 'yes':
+                        break
+
+        except KeyboardInterrupt:
+            pass
