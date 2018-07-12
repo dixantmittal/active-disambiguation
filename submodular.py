@@ -3,101 +3,129 @@ import numpy as np
 np.set_printoptions(precision = 4, suppress = True)
 
 
-def entropy(p):
-    return -np.dot(p, np.log2(p))
-
-
 # P(z|s,a)
 def p_obs(z, s, a):
-    return 0.05 if (a in s and z == 'no') or (a not in s and z == 'yes') else 0.95
-
-
-# P(z|b,a)
-def obs_likelihood(knowledge, belief, action, obs):
-    likelihood = np.zeros(len(belief))
-    for i, _object in enumerate(knowledge):
-        likelihood[i] = p_obs(obs, _object[0] + ' ' + _object[1], action) * belief[i]
-
-    return likelihood
+    return 0.01 if (a in s and z == 'no') or (a not in s and z == 'yes') else 0.99
 
 
 # P(s|b,a,z)
-def belief_update(knowledge, belief, action, obs):
-    updated_belief = obs_likelihood(knowledge, belief, action, obs)
+def belief_update(belief, action, obs):
+    updated_belief = np.zeros(len(belief))
+    for i, _object in enumerate(KNOWLEDGE):
+        updated_belief[i] = p_obs(obs, _object[0] + ' ' + _object[1], action) * belief[i]
     return updated_belief / np.sum(updated_belief, keepdims = True)
 
 
-# H(X|U) = \sum_u P(u) \sum_x P(x\u) log P(x|u)
-def conditional_entropy(knowledge, belief, action, observations):
-    entropies = np.zeros(len(belief))
+# P(z1, z2, z3) = \sum_s P(z1|s) * P(z2|s) * P(z3|s)
+# variable =                    observations with proper index
+# conditional_distributions =   array containing distributions
+def joint_probability(variables):
+    probability = 0
+    for _object in range(n_objects):
+        conditional = 1
+        for observation in variables:
+            conditional = conditional * DISTRIBUTIONS[_object, observation]
 
-    for o, _object in enumerate(knowledge):
-        probabilities = np.zeros(len(observations))
-        for j, observation in enumerate(observations):
-            probabilities[j] = p_obs(observation, _object[0] + ' ' + _object[1], action)
-        entropies[o] = entropy(probabilities)
+        probability = probability + conditional * BELIEF[_object]
 
-    return belief.dot(entropies)
-
-
-def plan(knowledge, belief, actions, observations):
-    information_gain = np.zeros(len(actions))
-    for i, action in enumerate(actions):
-        obs_probability = np.zeros(len(observations))
-        for j, observation in enumerate(observations):
-            obs_probability[j] = obs_likelihood(knowledge, belief, action, observation).sum()
-
-        information_gain[i] = entropy(obs_probability) - conditional_entropy(knowledge, belief, action, observations)
-
-    return actions[information_gain.argmax()]
+    return probability
 
 
-def main():
-    knowledge = np.array([["yellow cup", "left"],
-                          # ["yellow cup", "middle"],
-                          # ["yellow cup", "right"],
+# H(X|U) = - \sum_u P(u) \sum_x P(x|u) log P(x|u)
+def conditional_entropy(conditional_variable, observed_variables = []):
+    _entropy = 0
+
+    for i in range(2 ** len(observed_variables)):
+        observations = []
+        for variable in observed_variables:
+            observations.append(variable * 2 + i % 2)
+            i = i // 2
+
+        j_p = np.zeros(n_observations)
+
+        j_p[0] = joint_probability(observations + [conditional_variable * 2])
+        j_p[1] = joint_probability(observations + [conditional_variable * 2 + 1])
+
+        _entropy = _entropy - np.dot(j_p, (np.log2(j_p) - np.log2(j_p.sum())))
+
+    return _entropy
+
+
+def plan(n_questions = 3):
+    optimal_actions = []
+    while n_questions > 0:
+        information_gain = np.zeros(n_actions)
+        for _action in range(n_actions):
+            information_gain[_action] = conditional_entropy(_action, optimal_actions)
+
+        n_questions -= 1
+        optimal_actions.append(information_gain.argmax())
+
+    return optimal_actions
+
+
+def init_distributions():
+    dist = np.zeros((len(KNOWLEDGE), len(ACTIONS), len(OBSERVATIONS)))
+    for i, _object in enumerate(KNOWLEDGE):
+        for j, action in enumerate(ACTIONS):
+            for k, observation in enumerate(OBSERVATIONS):
+                dist[i, j, k] = p_obs(observation, _object, action)
+
+    return dist
+
+
+if __name__ == '__main__':
+    KNOWLEDGE = np.array([["yellow cup", "left"],
+                          ["yellow cup", "middle"],
+                          ["yellow cup", "right"],
                           ["red cup", "left"],
                           ["red cup", "middle"],
-                          # ["red cup", "right"],
-                          # ["green cup", "left"],
+                          ["red cup", "right"],
+                          ["green cup", "left"],
                           ["green cup", "middle"],
                           ["green cup", "right"],
-                          # ["blue cup", "left"],
-                          # ["blue cup", "middle"],
+                          ["blue cup", "left"],
+                          ["blue cup", "middle"],
                           ["blue cup", "right"]
                           ])
 
-    size = len(knowledge)
+    size = len(KNOWLEDGE)
 
-    belief = np.ones(size)
-    belief = belief / belief.sum(keepdims = True)
+    BELIEF = np.ones(size)
+    BELIEF = BELIEF / BELIEF.sum(keepdims = True)
 
     semantic = set()
     spatial = set()
 
-    for _object in knowledge:
-        semantic.add(_object[0])
-        spatial.add(_object[1])
+    for desc in KNOWLEDGE:
+        semantic.add(desc[0])
+        spatial.add(desc[1])
 
-    observations = ['yes', 'no']
+    OBSERVATIONS = ['yes', 'no']
 
-    actions = list(semantic.union(spatial))
+    ACTIONS = list(semantic.union(spatial))
+
+    n_objects = len(KNOWLEDGE)
+    n_actions = len(ACTIONS)
+    n_observations = len(OBSERVATIONS)
+
+    DISTRIBUTIONS = init_distributions().reshape((n_objects, -1))
 
     try:
         while True:
-            print(belief)
-            if belief.max() > 0.7:
-                print("Picks up: ", knowledge[belief.argmax()])
-                break
-            action = plan(knowledge, belief, actions, observations)
-            print(action + "?")
+            actions = plan(3)
+            action = actions[0]
 
-            actual_observation = input()
-            belief = belief_update(knowledge, belief, action, actual_observation)
+            for action in actions:
+                print(BELIEF)
+                if BELIEF.max() > 0.7:
+                    print("Picks up: ", KNOWLEDGE[BELIEF.argmax()])
+                    raise KeyboardInterrupt
+
+                print(ACTIONS[action] + "?")
+
+                actual_observation = input()
+                BELIEF = belief_update(KNOWLEDGE, BELIEF, ACTIONS[action], actual_observation)
 
     except KeyboardInterrupt:
         pass
-
-
-if __name__ == '__main__':
-    main()
