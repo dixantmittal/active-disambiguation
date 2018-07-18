@@ -4,7 +4,7 @@ import commons as coms
 import environment as env
 
 
-def plan(belief, n_questions = 3):
+def plan(belief, n_questions = 2):
     optimal_actions = []
     while n_questions > 0:
         information_gain = np.zeros(env.n_actions)

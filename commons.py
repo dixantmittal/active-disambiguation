@@ -54,7 +54,7 @@ def conditional_entropy(conditional_variable, observed_variables = [], belief = 
         j_p[0] = joint_probability(observations + [conditional_variable * 2], belief)
         j_p[1] = joint_probability(observations + [conditional_variable * 2 + 1], belief)
 
-        _entropy = _entropy - np.dot(j_p, (np.log2(j_p) - np.log2(j_p.sum())))
+        _entropy = _entropy - np.dot(j_p, np.log2(j_p) - np.log2(j_p.sum()))
 
     return _entropy
 
@@ -75,6 +75,11 @@ def init_distributions():
                 dist[i, j, k] = p_obs(observation, _object, action)
 
     return dist
+
+
+def reinit_distributions():
+    global DISTRIBUTIONS
+    DISTRIBUTIONS = init_distributions().reshape((env.n_objects, -1))
 
 
 DISTRIBUTIONS = init_distributions().reshape((env.n_objects, -1))
