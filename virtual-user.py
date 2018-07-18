@@ -57,7 +57,7 @@ def start_experiment(n_runs = 5):
         nq_pomdp = np.mean(nq_pomdp)
         nq_greedy = np.mean(nq_greedy)
 
-        if True:  # nq_sub < nq_pomdp and nq_sub < nq_greedy:
+        if not (nq_greedy == nq_pomdp == nq_sub):  # nq_sub < nq_pomdp and nq_sub < nq_greedy:
             print(env.KNOWLEDGE)
             print(nq_pomdp, '\t', nq_greedy, '\t', nq_sub, end = '\n\n')
 
