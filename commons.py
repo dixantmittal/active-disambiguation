@@ -1,11 +1,8 @@
 import numpy as np
+
 from environment import *
-from kafka import KafkaProducer, KafkaConsumer
 
-np.set_printoptions(precision = 4, suppress = True)
-
-consumer = KafkaConsumer('active-disambiguation-replies', group_id = 'alpha')
-producer = KafkaProducer(bootstrap_servers = 'localhost:9092')
+np.set_printoptions(precision = 2, suppress = True)
 
 
 # P(z|s,a)

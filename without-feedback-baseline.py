@@ -13,7 +13,7 @@ def main():
 
     # belief = np.array([1,5])
     belief = np.ones(size)
-    belief = belief / belief.sum(keepdims=True)
+    belief = belief / belief.sum(keepdims = True)
 
     print("Picks: ", knowledge[belief.argmax()])
 

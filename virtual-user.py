@@ -1,57 +1,65 @@
 import argparse
-from environment import *
-from kafka import KafkaConsumer, KafkaProducer
-import numpy as np
 
-consumer = KafkaConsumer('active-disambiguation-questions', group_id = 'alpha')
-producer = KafkaProducer(bootstrap_servers = 'localhost:9092')
+import greedy as gd
+import pomdp as pd
+import submodular as sm
+from commons import *
 
-
-def read():
-    for question in consumer:
-        return question.value.decode('utf-8')
-
-
-def reply(message):
-    producer.send('active-disambiguation-replies', message.encode('utf-8'))
-    producer.flush()
+MODE = {
+    'pomdp': pd.plan,
+    'greedy': gd.plan,
+    'submodular': sm.plan
+}
 
 
-def prepare_reply(question, intention):
-    return 'yes' if KNOWLEDGE[intention][0] in question or KNOWLEDGE[intention][1] in question else 'no'
-
-
-def simulate():
-    intention = np.random.randint(len(KNOWLEDGE))
-    n_questions = 0
-    print('Intention :', KNOWLEDGE[intention])
-    while True:
-        question = read()
-        print(question)
-
-        if 'Picks up' in question:
-            if KNOWLEDGE[intention][0] not in question or KNOWLEDGE[intention][1] not in question:
+def get_reply(robot_says, intention = None, simulate = True):
+    if simulate:
+        if 'Picks up' in robot_says:
+            if KNOWLEDGE[intention][0] not in robot_says or KNOWLEDGE[intention][1] not in robot_says:
                 print('PICKED WRONG OBJECT')
+            return
+
+        reply = 'yes' if KNOWLEDGE[intention][0] in robot_says or KNOWLEDGE[intention][1] in robot_says else 'no'
+        print('A:', reply)
+
+        return reply
+
+    else:
+        return input('A: ')
+
+
+def start_experiment(simulate = False, mode = 'user', n_runs = 5):
+    preference = np.ones(n_objects)
+    preference = preference / preference.sum(keepdims = True)
+
+    for _ in range(n_runs):
+        print("######### RUN:", _ + 1, "#########")
+        belief = preference
+        intention = np.random.randint(n_objects) if simulate else int(input('Enter your intention: '))
+        print('\nIntention :', KNOWLEDGE[intention])
+
+        planner = MODE[mode]
+        try:
+            while True:
+                print('Belief: ', belief)
+                if belief.max() > 0.8:
+                    print('Picks up ' + KNOWLEDGE[belief.argmax()][0] + ' on ' + KNOWLEDGE[belief.argmax()][1])
+                    print()
+                    break
+                else:
+                    question = planner(belief)
+                    robot_says = 'Did you mean the ' + ACTIONS[question] + '?'
+                    print('Q:', robot_says)
+
+                actual_observation = get_reply(robot_says = robot_says, intention = intention, simulate = simulate)
+
+                belief = belief_update(belief, ACTIONS[question], actual_observation)
+
+        except KeyboardInterrupt:
             break
 
-        to_reply = prepare_reply(question, intention)
-        print(to_reply)
-        reply(to_reply)
-        n_questions += 1
-
-    print('Questions asked :', n_questions, '\n\n')
-    return n_questions
-
-
-def user():
-    while True:
-        question = read()
-        print(question)
-
-        if 'Picks up' in question:
-            break
-
-        reply(input())
+        preference = belief * preference + 0.01
+        preference = preference / preference.sum(keepdims = True)
 
 
 if __name__ == '__main__':
@@ -60,15 +68,15 @@ if __name__ == '__main__':
                         dest = 'simulate',
                         action = 'store_true',
                         help = 'Turn on Simulator')
+    parser.add_argument('--planner',
+                        dest = 'planner',
+                        default = 'greedy',
+                        help = 'Planner to use')
+    parser.add_argument('--n_runs',
+                        dest = 'n_runs',
+                        default = 'greedy',
+                        help = 'number of runs')
     parser.set_defaults(sanity_check = False)
     args = parser.parse_args()
 
-    if args.simulate:
-        n_q = 0
-        for i in range(n_runs):
-            n_q += simulate()
-        print('Average questions: ', n_q / n_runs)
-    else:
-        user()
-
-    consumer.commit()
+    start_experiment(args.simulate, args.planner, int(args.n_runs))
