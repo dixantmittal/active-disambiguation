@@ -1,6 +1,6 @@
 import numpy as np
 
-from environment import *
+import environment as env
 
 np.set_printoptions(precision = 2, suppress = True)
 
@@ -13,7 +13,7 @@ def p_obs(z, s, a):
 # P(z|b,a)
 def obs_likelihood(belief, action, obs):
     likelihood = np.zeros(len(belief))
-    for i, obj in enumerate(KNOWLEDGE):
+    for i, obj in enumerate(env.KNOWLEDGE):
         likelihood[i] = p_obs(obs, obj[0] + ' ' + obj[1], action) * belief[i]
     return likelihood
 
@@ -29,7 +29,7 @@ def belief_update(belief, action, obs):
 # conditional_distributions =   array containing distributions
 def joint_probability(variables, belief):
     probability = 0
-    for _object in range(n_objects):
+    for _object in range(env.n_objects):
         conditional = 1
         for observation in variables:
             conditional = conditional * DISTRIBUTIONS[_object, observation]
@@ -49,7 +49,7 @@ def conditional_entropy(conditional_variable, observed_variables = [], belief = 
             observations.append(variable * 2 + i % 2)
             i = i // 2
 
-        j_p = np.zeros(n_observations)
+        j_p = np.zeros(env.n_observations)
 
         j_p[0] = joint_probability(observations + [conditional_variable * 2], belief)
         j_p[1] = joint_probability(observations + [conditional_variable * 2 + 1], belief)
@@ -68,13 +68,13 @@ def entropy_diff(p1, p2):
 
 
 def init_distributions():
-    dist = np.zeros((len(KNOWLEDGE), len(ACTIONS), len(OBSERVATIONS)))
-    for i, _object in enumerate(KNOWLEDGE):
-        for j, action in enumerate(ACTIONS):
-            for k, observation in enumerate(OBSERVATIONS):
+    dist = np.zeros((env.n_objects, env.n_actions, env.n_observations))
+    for i, _object in enumerate(env.KNOWLEDGE):
+        for j, action in enumerate(env.ACTIONS):
+            for k, observation in enumerate(env.OBSERVATIONS):
                 dist[i, j, k] = p_obs(observation, _object, action)
 
     return dist
 
 
-DISTRIBUTIONS = init_distributions().reshape((n_objects, -1))
+DISTRIBUTIONS = init_distributions().reshape((env.n_objects, -1))

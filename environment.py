@@ -1,6 +1,8 @@
+import numpy as np
+
 n_runs = 100
 
-KNOWLEDGE = [
+KNOWLEDGE = WORLD = [
     ["yellow cup", "left"],
     ["yellow cup", "middle"],
     ["yellow cup", "right"],
@@ -28,3 +30,19 @@ OBSERVATIONS = ['yes', 'no']
 n_objects = len(KNOWLEDGE)
 n_actions = len(ACTIONS)
 n_observations = len(OBSERVATIONS)
+
+
+def random_scenario():
+    global KNOWLEDGE
+
+    scenario = set()
+
+    for i in range(np.maximum(np.random.randint(len(WORLD)), 3)):
+        scenario.add(np.random.randint(len(WORLD)))
+
+    KNOWLEDGE = []
+    for i in scenario:
+        KNOWLEDGE.append(WORLD[i])
+
+    global n_objects
+    n_objects = len(KNOWLEDGE)

@@ -1,4 +1,7 @@
-from commons import *
+import numpy as np
+
+import commons as coms
+import environment as env
 
 
 def pick_expected_reward(updated_belief):
@@ -22,14 +25,14 @@ def build_tree(belief, gamma = 0.5, steps_remaining = 5):
     if steps_remaining <= 0:
         return value(belief, steps_remaining = 0)
 
-    Q_value = np.zeros(n_actions)
+    Q_value = np.zeros(env.n_actions)
 
-    for i, action in enumerate(ACTIONS):
+    for i, action in enumerate(env.ACTIONS):
         expected_value = 0
-        for obs in OBSERVATIONS:
-            updated_belief = belief_update(belief, action, obs)
-            expected_value = expected_value + obs_likelihood(belief, action, obs).sum() * value(updated_belief, gamma = gamma,
-                                                                                                steps_remaining = steps_remaining - 1)
+        for obs in env.OBSERVATIONS:
+            updated_belief = coms.belief_update(belief, action, obs)
+            expected_value = expected_value + coms.obs_likelihood(belief, action, obs).sum() * value(updated_belief, gamma = gamma,
+                                                                                                     steps_remaining = steps_remaining - 1)
         Q_value[i] = gamma * expected_value
 
     return Q_value
