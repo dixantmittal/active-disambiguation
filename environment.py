@@ -37,7 +37,7 @@ def random_scenario():
 
     scenario = set()
 
-    i = np.maximum(np.random.randint(len(WORLD)), 3)
+    i = np.minimum(np.maximum(np.random.randint(len(WORLD)), 3), 8)
     while i > 0:
         idx = np.random.randint(len(WORLD))
         if idx not in scenario: i -= 1
