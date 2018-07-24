@@ -4,6 +4,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 import numpy as np
 
+import adaptive_submodular as ads
 import commons as coms
 import environment as env
 import greedy as gd
@@ -13,7 +14,8 @@ import submodular as sm
 MODE = {
     'pomdp': pd.plan,
     'greedy': gd.plan,
-    'submodular': sm.plan
+    'submodular': sm.plan,
+    'adaptive-submodular': ads.plan
 }
 
 
@@ -41,25 +43,26 @@ def simulation(intention, planner):
 
 def start_experiment(n_runs = 5):
     pool = ThreadPool(100)
-    for _ in range(n_runs):
+    for _ in range(1, n_runs + 1):
         env.random_scenario()
         coms.reinit_distributions()
 
-        print("######### RUN:", _ + 1, "#########")
+        print("######### RUN:", _, "#########")
 
         intentions = np.random.choice(a = env.n_objects, size = env.n_objects * 5)
 
         nq_pomdp = pool.starmap(simulation, zip(intentions, itertools.repeat('pomdp')))
         nq_greedy = pool.starmap(simulation, zip(intentions, itertools.repeat('greedy')))
         nq_sub = pool.starmap(simulation, zip(intentions, itertools.repeat('submodular')))
+        nq_adasub = pool.starmap(simulation, zip(intentions, itertools.repeat('adaptive-submodular')))
 
-        nq_sub = np.mean(nq_sub)
-        nq_pomdp = np.mean(nq_pomdp)
-        nq_greedy = np.mean(nq_greedy)
+        nq_sub = nq_sub.mean()
+        nq_pomdp = nq_pomdp.mean()
+        nq_greedy = nq_greedy.mean()
+        nq_adasub = nq_adasub.mean()
 
-        if not (nq_greedy == nq_pomdp == nq_sub):  # nq_sub < nq_pomdp and nq_sub < nq_greedy:
-            print(env.KNOWLEDGE)
-            print(nq_pomdp, '\t', nq_greedy, '\t', nq_sub, end = '\n\n')
+        print(env.KNOWLEDGE)
+        print(nq_pomdp, '\t', nq_greedy, '\t', nq_sub, '\t', nq_adasub, end = '\n\n')
 
 
 if __name__ == '__main__':
