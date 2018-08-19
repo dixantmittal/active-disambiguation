@@ -7,14 +7,16 @@ np.set_printoptions(precision = 2, suppress = True)
 
 # P(z|s,a)
 def p_obs(z, s, a):
-    return 0.01 if (a in s and z == 'no') or (a not in s and z == 'yes') else 0.99
+    s = s[0] + ' ' + s[1]
+    lie = 1e-20
+    return lie if (a in s and z == 'no') or (a not in s and z == 'yes') else 1 - lie
 
 
 # P(z|b,a)
 def obs_likelihood(belief, action, obs):
     likelihood = np.zeros(len(belief))
     for i, obj in enumerate(env.KNOWLEDGE):
-        likelihood[i] = p_obs(obs, obj[0] + ' ' + obj[1], action) * belief[i]
+        likelihood[i] = p_obs(obs, obj, action) * belief[i]
     return likelihood
 
 

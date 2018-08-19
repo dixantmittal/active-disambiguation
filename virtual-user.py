@@ -56,10 +56,10 @@ def start_experiment(n_runs = 5):
         nq_sub = pool.starmap(simulation, zip(intentions, itertools.repeat('submodular')))
         nq_adasub = pool.starmap(simulation, zip(intentions, itertools.repeat('adaptive-submodular')))
 
-        nq_sub = nq_sub.mean()
-        nq_pomdp = nq_pomdp.mean()
-        nq_greedy = nq_greedy.mean()
-        nq_adasub = nq_adasub.mean()
+        nq_pomdp = np.mean(nq_pomdp)
+        nq_greedy = np.mean(nq_greedy)
+        nq_sub = np.mean(nq_sub)
+        nq_adasub = np.mean(nq_adasub)
 
         print(env.KNOWLEDGE)
         print(nq_pomdp, '\t', nq_greedy, '\t', nq_sub, '\t', nq_adasub, end = '\n\n')

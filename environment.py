@@ -17,13 +17,17 @@ KNOWLEDGE = WORLD = [
     ["blue cup", "right"]
 ]
 
-semantic = set()
-spatial = set()
-for desc in KNOWLEDGE:
-    semantic.add(desc[0])
-    spatial.add(desc[1])
+ACTIONS = set()
+for object in KNOWLEDGE:
+    tokens = object[0].split(' ')
+    for token in tokens:
+        ACTIONS.add(token)
 
-ACTIONS = list(semantic.union(spatial))
+    tokens = object[1].split(' ')
+    for token in tokens:
+        ACTIONS.add(token)
+
+ACTIONS = list(ACTIONS)
 
 OBSERVATIONS = ['yes', 'no']
 
