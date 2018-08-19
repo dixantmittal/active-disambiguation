@@ -1,22 +1,73 @@
 import numpy as np
+import torch
 
 import environment as env
+import language_model as langmod
 
 np.set_printoptions(precision = 2, suppress = True)
+
+# Load language model
+language_model = langmod.BLSTMEncoder({'word_emb_dim': 300,
+                                       'enc_lstm_dim': 2048,
+                                       'pool_type': 'max',
+                                       'bsize': 64,
+                                       'dpout_model': 0.0,
+                                       'training': False,
+                                       'glove_path': '/Users/dixantmittal/nltk_data/glove.840B.300d.txt'})
+language_model.load_state_dict(torch.load('infersent.allnli.pickle'))
+language_model.build_vocab_k_words(K = 10000)
+
+# encode fixed descriptions
+descriptions = [(obj[0] + ' ' + obj[1]) for obj in env.KNOWLEDGE]
+encoded_descriptions = language_model.encode(descriptions)
+
+
+# utils functions
+def cosine(u, v):
+    return np.dot(u, np.transpose(v)) / (np.linalg.norm(u, axis = 1, keepdims = True) * np.linalg.norm(v, axis = 1, keepdims = True))
+
+
+def sentence_similarity_score(sentence):
+    sentence = language_model.encode([sentence])
+    cosine_distance = cosine(encoded_descriptions, sentence).reshape(-1)
+    return (cosine_distance - np.min(cosine_distance) + 1e-20) ** 2
+
+
+no_list = ['no', 'nope', 'false', 'stop', 'not']
+yes_list = ['yes', 'yep', 'go ahead', 'go on']
 
 
 # P(z|s,a)
 def p_obs(z, s, a):
     s = s[0] + ' ' + s[1]
     lie = 1e-20
-    return lie if (a in s and z == 'no') or (a not in s and z == 'yes') else 1 - lie
+    return lie if (a in s and z in no_list) or (a not in s and z in yes_list) else 1 - lie
+
+
+def split_sentence(observation):
+    observation = observation.replace(',', '')
+
+    response = ''
+    description = observation
+    for word in observation.split(' '):
+        if word in (no_list + yes_list):
+            response = word
+            description = description.replace(word, '')
+            break
+
+    return response, description
 
 
 # P(z|b,a)
-def obs_likelihood(belief, action, obs):
+def obs_likelihood(belief, action, observation):
+    response, description = split_sentence(observation)
+
     likelihood = np.zeros(len(belief))
     for i, obj in enumerate(env.KNOWLEDGE):
-        likelihood[i] = p_obs(obs, obj, action) * belief[i]
+        likelihood[i] = p_obs(response, obj, action) * belief[i]
+
+    if len(description) > 0:
+        likelihood = likelihood * sentence_similarity_score(description)
     return likelihood
 
 
@@ -24,49 +75,6 @@ def obs_likelihood(belief, action, obs):
 def belief_update(belief, action, obs):
     updated_belief = obs_likelihood(belief, action, obs)
     return updated_belief / updated_belief.sum(keepdims = True)
-
-
-# P(z1, z2, z3) = \sum_s P(z1|s) * P(z2|s) * P(z3|s)
-# variable =                    observations with proper index
-# conditional_distributions =   array containing distributions
-def joint_probability(variables, belief):
-    probability = 0
-    for _object in range(env.n_objects):
-        conditional = 1
-        for observation in variables:
-            conditional = conditional * DISTRIBUTIONS[_object, observation]
-
-        probability = probability + conditional * belief[_object]
-
-    return probability
-
-
-# H(X|U) = - \sum_u P(u) \sum_x P(x|u) log P(x|u)
-def conditional_entropy(conditional_variable, observed_variables = [], belief = None):
-    _entropy = 0
-
-    for i in range(2 ** len(observed_variables)):
-        observations = []
-        for variable in observed_variables:
-            observations.append(variable * 2 + i % 2)
-            i = i // 2
-
-        j_p = np.zeros(env.n_observations)
-
-        j_p[0] = joint_probability(observations + [conditional_variable * 2], belief)
-        j_p[1] = joint_probability(observations + [conditional_variable * 2 + 1], belief)
-
-        _entropy = _entropy - np.dot(j_p, np.log2(j_p) - np.log2(j_p.sum()))
-
-    return _entropy
-
-
-def entropy(p):
-    return -np.dot(p, np.log2(p))
-
-
-def entropy_diff(p1, p2):
-    return entropy(p1) - entropy(p2)
 
 
 def init_distributions():
@@ -77,11 +85,6 @@ def init_distributions():
                 dist[i, j, k] = p_obs(observation, _object, action)
 
     return dist
-
-
-def reinit_distributions():
-    global DISTRIBUTIONS
-    DISTRIBUTIONS = init_distributions().reshape((env.n_objects, -1))
 
 
 DISTRIBUTIONS = init_distributions().reshape((env.n_objects, -1))
