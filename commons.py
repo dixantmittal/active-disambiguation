@@ -78,16 +78,3 @@ def obs_likelihood(belief, action, observation):
 def belief_update(belief, action, obs):
     updated_belief = obs_likelihood(belief, action, obs)
     return updated_belief / updated_belief.sum(keepdims = True)
-
-
-def init_distributions():
-    dist = np.zeros((env.n_objects, env.n_actions, env.n_observations))
-    for i, obj in enumerate(env.KNOWLEDGE):
-        for j, action in enumerate(env.ACTIONS):
-            for k, observation in enumerate(env.OBSERVATIONS):
-                dist[i, j, k] = p_obs(observation, obj, action)
-
-    return dist
-
-
-DISTRIBUTIONS = init_distributions().reshape((env.n_objects, -1))

@@ -90,7 +90,6 @@ class BLSTMEncoder(nn.Module):
         assert hasattr(self, 'glove_path'), 'warning : you need \
                                              to set_glove_path(glove_path)'
         self.word_vec = self.get_glove_k(K)
-        print('Vocab size : {0}'.format(K))
 
     def get_batch(self, batch):
         # sent in batch in decreasing order of lengths

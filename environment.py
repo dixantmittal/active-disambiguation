@@ -61,17 +61,13 @@ def random_scenario():
         if idx not in scenario: i -= 1
         scenario.add(idx)
 
-    KNOWLEDGE = []
-    for i in scenario:
-        KNOWLEDGE.append(WORLD[i])
+    KNOWLEDGE = [WORLD[i] for i in scenario]
 
-    semantic = set()
-    spatial = set()
-    for desc in KNOWLEDGE:
-        semantic.add(desc[0])
-        spatial.add(desc[1])
+    ACTIONS = set()
+    for obj in KNOWLEDGE:
+        ACTIONS.update(obj.tokens)
 
-    ACTIONS = list(semantic.union(spatial))
+    ACTIONS = list(ACTIONS)
 
     OBSERVATIONS = ['yes', 'no']
 
