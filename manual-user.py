@@ -9,6 +9,9 @@ np.set_printoptions(precision = 2, suppress = True)
 belief = np.ones(env.n_objects)
 belief = belief / belief.sum(keepdims = True)
 
+ref_exp = input('Which object do you want?\n>')
+belief = coms.belief_update(belief, '', ref_exp)
+
 nq = 0
 while belief.max() < 0.7:
     print(belief)

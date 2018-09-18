@@ -1,31 +1,45 @@
 import numpy as np
 
+from string_utils import *
+
 n_runs = 100
 
-KNOWLEDGE = WORLD = [
-    ["yellow cup", "left"],
-    ["yellow cup", "middle"],
-    ["yellow cup", "right"],
-    ["red cup", "left"],
-    ["red cup", "middle"],
-    ["red cup", "right"],
-    ["green cup", "left"],
-    ["green cup", "middle"],
-    ["green cup", "right"],
-    ["blue cup", "left"],
-    ["blue cup", "middle"],
-    ["blue cup", "right"]
+
+class Object(object):
+    def __init__(self, caption):
+        caption = clean_punctuation(caption)
+        self.description = caption
+        self.tokens = self.get_tokens(caption)
+
+    def get_tokens(self, caption):
+        return set(caption.split(' ')) - {'in', 'on', 'the', 'of', 'a', 'an'}
+
+    def __str__(self):
+        return self.description
+
+    def __len__(self):
+        return len(self.tokens)
+
+
+KNOWLEDGE = [
+    Object('a yellow cup on left'),
+    Object('a yellow cup in middle'),
+    Object('a yellow cup on right'),
+    Object('a red cup on left'),
+    Object('a red cup in middle'),
+    Object('a red cup on right'),
+    Object('a green cup on left'),
+    Object('a green cup in middle'),
+    Object('a green cup on right'),
+    Object('a blue cup on left'),
+    Object('a blue cup in middle'),
+    Object('a blue cup on right')
 ]
+WORLD = list(KNOWLEDGE)
 
 ACTIONS = set()
-for object in KNOWLEDGE:
-    tokens = object[0].split(' ')
-    for token in tokens:
-        ACTIONS.add(token)
-
-    tokens = object[1].split(' ')
-    for token in tokens:
-        ACTIONS.add(token)
+for obj in KNOWLEDGE:
+    ACTIONS.update(obj.tokens)
 
 ACTIONS = list(ACTIONS)
 
