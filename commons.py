@@ -1,26 +1,9 @@
 import numpy as np
-import torch
 
 import environment as env
-import language_model as langmod
 from string_utils import *
 
 np.set_printoptions(precision = 2, suppress = True)
-
-# Load language model
-language_model = langmod.BLSTMEncoder({'word_emb_dim': 300,
-                                       'enc_lstm_dim': 2048,
-                                       'pool_type': 'max',
-                                       'bsize': 64,
-                                       'dpout_model': 0.0,
-                                       'training': False,
-                                       'glove_path': '/Users/dixantmittal/nltk_data/glove.840B.300d.txt'})
-language_model.load_state_dict(torch.load('infersent.allnli.pickle'))
-language_model.build_vocab_k_words(K = 20000)
-
-# encode fixed descriptions
-descriptions = [obj.description for obj in env.KNOWLEDGE]
-encoded_descriptions = language_model.encode(descriptions)
 
 
 # utils functions
@@ -38,7 +21,7 @@ def unigram_model(sentence):
 
 
 def sentence_similarity_score(sentence):
-    return unigram_model(sentence) * cosine(encoded_descriptions, language_model.encode([sentence])).reshape(-1)
+    return unigram_model(sentence)
 
 
 # P(z|s,a)
